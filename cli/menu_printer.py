@@ -1,5 +1,7 @@
-from typing import Dict
+from typing import Dict, List
 from domain.MenuFunctions import MenuFunctions
+from domain.User import User
+from domain.Stock import Stock
 from rich.console import Console
 from rich.table import Table
 import constants
@@ -7,13 +9,15 @@ import sys
 import db
 from services.login_service import login
 from services.user_service import create_user, get_users, delete_user
+from services.market_service import get_stocks
 
 _console = Console()
 
 _menus: Dict[int, str] = {
     constants.LOGIN_MENU: "----\nWELCOME TO KIWI\n----\n1. Login\n0. Exit",
     constants.MAIN_MENU: "----\nMAIN MENU\n----\n1. Manage users\n2. My portfolios\n3. Marketplace\n0. Logout",
-    constants.MANAGE_USERS_MENU: "----\nUSERS MENU\n----\n1. View users\n2. Create user\n3. Delete user\n0. Back to main menu"
+    constants.MANAGE_USERS_MENU: "----\nUSERS MENU\n----\n1. View users\n2. Create user\n3. Delete user\n0. Back to main menu",
+    constants.MARKET_MENU: "----\nMARKET MENU\n----\n1. View offerings\n2. Buy securities\n0. Back to main menu"
 }
 
 def print_user_manager_menu():
@@ -24,7 +28,7 @@ def print_user_manager_menu():
         print_error(f"User is not authorized to perform this operation")
         return constants.MAIN_MENU
 
-def print_user_table(users):
+def print_user_table(users: List[User]):
     tbl = Table()
     tbl.add_column(header="Username")
     tbl.add_column(header="Name")
@@ -33,14 +37,23 @@ def print_user_table(users):
         tbl.add_row(user.username, f"{user.lastname}, {user.firstname}", str(user.balance))
     _console.print(tbl)
 
-
+def print_stock_table(stocks: List[Stock]):
+    tbl = Table()
+    tbl.add_column(header="Ticker")
+    tbl.add_column(header="Issuer")
+    tbl.add_column(header="Price")
+    for stock in stocks:
+        tbl.add_row(stock.ticker, stock.issuer, str(stock.price))
+    _console.print(tbl)
 
 _router: Dict[str, MenuFunctions] = {
     "0.1": MenuFunctions(executor=login, navigator=lambda: 1),
     "1.1": MenuFunctions(navigator=print_user_manager_menu),
     "2.1": MenuFunctions(executor=get_users, printer=print_user_table),
     "2.2": MenuFunctions(executor=create_user),
-    "2.3": MenuFunctions(executor=delete_user)
+    "2.3": MenuFunctions(executor=delete_user),
+    "1.3": MenuFunctions(navigator=lambda: constants.MARKET_MENU),
+    "3.1": MenuFunctions(executor=get_stocks, printer=print_stock_table)
 }
 
 def print_menu(menu_id: int):
